@@ -6,14 +6,29 @@ import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './au
 import { sendEmail } from '../../utils/email.service';
 
 export class AuthService {
-  private prisma: PrismaClient;
+  private prisma!: PrismaClient;  // Using definite assignment assertion
   private readonly JWT_SECRET: string;
   private readonly MAGIC_LINK_EXPIRY: number = 30 * 60 * 1000; // 30 minutes
   private readonly RESET_TOKEN_EXPIRY: number = 60 * 60 * 1000; // 1 hour
 
   constructor(prisma: PrismaClient) {
+    if (!prisma) {
+      throw new Error('PrismaClient is required but was not provided to AuthService');
+    }
+    
+    // Initialize Prisma immediately
     this.prisma = prisma;
     this.JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    
+    // Test the connection
+    this.prisma.$connect()
+      .then(() => {
+        console.log('AuthService successfully connected to Prisma');
+      })
+      .catch(error => {
+        console.error('AuthService failed to connect to Prisma:', error);
+        throw error;
+      });
   }
 
   private generateToken(userId: number): string {

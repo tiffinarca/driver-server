@@ -5,6 +5,8 @@ import * as bcrypt from 'bcryptjs';
 import { createMockUser } from '../helpers/test.utils';
 import jwt from 'jsonwebtoken';
 import { sendEmail } from '../../utils/email.service';
+import { createAuthRouter } from '../../apps/auth/auth.routes';
+import express from 'express';
 
 // Mock the auth middleware
 jest.mock('../../middleware/auth', () => ({
@@ -31,9 +33,18 @@ jest.mock('../../middleware/auth', () => ({
 
 describe('Auth Integration Tests', () => {
   const baseUrl = '/api/auth';
+  let testApp: express.Application;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    
+    // Create a fresh Express app for each test
+    testApp = express();
+    testApp.use(express.json());
+    
+    // Set up the auth routes with our mocked prisma
+    const authRouter = createAuthRouter(prismaMock);
+    testApp.use('/api/auth', authRouter);
   });
 
   describe('POST /register', () => {
@@ -56,7 +67,7 @@ describe('Auth Integration Tests', () => {
       prismaMock.user.create.mockResolvedValue(mockUser);
       (sendEmail as jest.Mock).mockResolvedValueOnce(undefined);
 
-      const response = await request(app)
+      const response = await request(testApp)
         .post(`${baseUrl}/register`)
         .send(registerData);
 
@@ -70,7 +81,7 @@ describe('Auth Integration Tests', () => {
       const existingUser = createMockUser({ email: registerData.email });
       prismaMock.user.findUnique.mockResolvedValue(existingUser);
 
-      const response = await request(app)
+      const response = await request(testApp)
         .post(`${baseUrl}/register`)
         .send(registerData);
 
@@ -95,7 +106,7 @@ describe('Auth Integration Tests', () => {
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
-      const response = await request(app)
+      const response = await request(testApp)
         .post(`${baseUrl}/login`)
         .send(loginData);
 
@@ -113,7 +124,7 @@ describe('Auth Integration Tests', () => {
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
-      const response = await request(app)
+      const response = await request(testApp)
         .post(`${baseUrl}/login`)
         .send(loginData);
 
@@ -131,7 +142,7 @@ describe('Auth Integration Tests', () => {
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
-      const response = await request(app)
+      const response = await request(testApp)
         .post(`${baseUrl}/login`)
         .send(loginData);
 
@@ -144,7 +155,7 @@ describe('Auth Integration Tests', () => {
     it('should send magic link successfully', async () => {
       const email = 'test@example.com';
       
-      const response = await request(app)
+      const response = await request(testApp)
         .post(`${baseUrl}/magic-link`)
         .send({ email });
 
@@ -174,7 +185,7 @@ describe('Auth Integration Tests', () => {
           password: 'hashed_new_password'
         });
 
-        const response = await request(app)
+        const response = await request(testApp)
           .post(`${baseUrl}/change-password`)
           .set('Authorization', `Bearer ${token}`)
           .send(changePasswordData);
@@ -185,7 +196,7 @@ describe('Auth Integration Tests', () => {
       });
 
       it('should return 401 without token', async () => {
-        const response = await request(app)
+        const response = await request(testApp)
           .post(`${baseUrl}/change-password`)
           .send(changePasswordData);
 
