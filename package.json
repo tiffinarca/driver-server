@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "create:app": "bash scripts/create-app.sh"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",

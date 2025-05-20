@@ -113,6 +113,8 @@ driver-server/
 │   ├── middleware/             # Express middlewares
 │   ├── utils/                  # Utility functions
 │   └── app.ts                  # Main application file
+├── scripts/                    # Development and utility scripts
+│   └── create-app.sh          # Script to generate new app modules
 ├── prisma/                     # Prisma ORM files
 │   └── schema.prisma          # Database schema
 └── package.json
@@ -131,6 +133,10 @@ The project follows a modular, domain-driven design:
 - `yarn dev`: Start development server with hot-reload
 - `yarn build`: Build for production
 - `yarn start`: Start production server
+- `yarn create:app <app-name>`: Generate a new app module with all necessary files and tests
+- `yarn test`: Run all tests
+- `yarn test:watch`: Run tests in watch mode
+- `yarn test:coverage`: Run tests with coverage report
 
 ## 📝 License
 
@@ -158,6 +164,8 @@ driver-server/
 │   ├── middleware/             # Express middlewares
 │   ├── utils/                  # Utility functions
 │   └── app.ts                  # Main application file
+├── scripts/                    # Development and utility scripts
+│   └── create-app.sh          # Script to generate new app modules
 ├── prisma/                     # Prisma ORM files
 │   └── schema.prisma          # Database schema
 └── package.json
@@ -184,6 +192,46 @@ Each feature module (e.g., auth, user) follows a consistent structure:
 - Magic link authentication
 
 ## Setting Up a New Module
+
+### Using the App Creation Script
+
+The easiest way to create a new module is to use the provided yarn command:
+
+```bash
+yarn create:app <module-name>
+```
+
+For example:
+```bash
+yarn create:app payment
+```
+
+Alternatively, you can use the script directly:
+```bash
+./scripts/create-app.sh <module-name>
+```
+
+This will:
+1. Create a new module directory under `src/apps/`
+2. Generate all necessary files with proper TypeScript setup:
+   - `<module>.service.ts` - Business logic with Prisma integration
+   - `<module>.controller.ts` - Request/Response handling
+   - `<module>.routes.ts` - API endpoint definitions
+   - `<module>.types.ts` - TypeScript types and interfaces
+3. Create corresponding test files under `src/__tests__/`:
+   - `<module>.integration.test.ts` - API endpoint tests
+   - `<module>.unit.test.ts` - Service unit tests
+
+The generated files follow best practices and include:
+- Proper TypeScript types
+- Dependency injection setup
+- Prisma integration
+- Express router configuration
+- Test boilerplate with Jest and Supertest
+
+### Manual Setup (Alternative)
+
+If you prefer to set up a module manually, follow these steps:
 
 1. Create a new directory under `src/apps/`:
 ```bash

@@ -7,8 +7,9 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-# Convert app name to lowercase
+# Convert app name to lowercase and create capitalized version
 APP_NAME=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+APP_NAME_CAPITAL=$(echo "$APP_NAME" | perl -pe 's/^(.)/\u$1/')
 APP_DIR="src/apps/$APP_NAME"
 TEST_DIR="src/__tests__/$APP_NAME"
 
@@ -22,63 +23,84 @@ fi
 mkdir -p "$APP_DIR"
 mkdir -p "$TEST_DIR"
 
+# Function to perform sed replacement on macOS
+replace_in_file() {
+    local file=$1
+    local search=$2
+    local replace=$3
+    local temp_file="${file}.tmp"
+    sed "s|${search}|${replace}|g" "$file" > "$temp_file" && mv "$temp_file" "$file"
+}
+
 # Create service file
-cat > "$APP_DIR/$APP_NAME.service.ts" << EOL
+cat > "$APP_DIR/$APP_NAME.service.ts" << 'EOL'
 import { PrismaClient } from '@prisma/client';
 
-export class ${APP_NAME^}Service {
+export class APPSERVICE {
     constructor(private prisma: PrismaClient) {}
 
     // Add your service methods here
 }
 EOL
+replace_in_file "$APP_DIR/$APP_NAME.service.ts" "APPSERVICE" "${APP_NAME_CAPITAL}Service"
 
 # Create controller file
-cat > "$APP_DIR/$APP_NAME.controller.ts" << EOL
+cat > "$APP_DIR/$APP_NAME.controller.ts" << 'EOL'
 import { Request, Response } from 'express';
-import { ${APP_NAME^}Service } from './${APP_NAME}.service';
+import { APPSERVICE } from './APP.service';
 
-export class ${APP_NAME^}Controller {
-    constructor(private ${APP_NAME}Service: ${APP_NAME^}Service) {}
+export class APPCONTROLLER {
+    constructor(private appService: APPSERVICE) {}
 
     // Add your controller methods here
 }
 EOL
+replace_in_file "$APP_DIR/$APP_NAME.controller.ts" "APPSERVICE" "${APP_NAME_CAPITAL}Service"
+replace_in_file "$APP_DIR/$APP_NAME.controller.ts" "APPCONTROLLER" "${APP_NAME_CAPITAL}Controller"
+replace_in_file "$APP_DIR/$APP_NAME.controller.ts" "appService" "${APP_NAME}Service"
+replace_in_file "$APP_DIR/$APP_NAME.controller.ts" "APP.service" "${APP_NAME}.service"
 
 # Create routes file
-cat > "$APP_DIR/$APP_NAME.routes.ts" << EOL
+cat > "$APP_DIR/$APP_NAME.routes.ts" << 'EOL'
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { ${APP_NAME^}Controller } from './${APP_NAME}.controller';
-import { ${APP_NAME^}Service } from './${APP_NAME}.service';
+import { APPCONTROLLER } from './APP.controller';
+import { APPSERVICE } from './APP.service';
 
-export const create${APP_NAME^}Router = (prisma: PrismaClient) => {
+export const createAPPRouter = (prisma: PrismaClient) => {
     const router = express.Router();
-    const ${APP_NAME}Service = new ${APP_NAME^}Service(prisma);
-    const ${APP_NAME}Controller = new ${APP_NAME^}Controller(${APP_NAME}Service);
+    const appService = new APPSERVICE(prisma);
+    const appController = new APPCONTROLLER(appService);
 
     // Add your routes here
     // Example:
-    // router.get('/', (req, res) => ${APP_NAME}Controller.someMethod(req, res));
+    // router.get('/', (req, res) => appController.someMethod(req, res));
 
     return router;
 };
 EOL
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "APPCONTROLLER" "${APP_NAME_CAPITAL}Controller"
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "APPSERVICE" "${APP_NAME_CAPITAL}Service"
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "APP.controller" "${APP_NAME}.controller"
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "APP.service" "${APP_NAME}.service"
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "createAPPRouter" "create${APP_NAME_CAPITAL}Router"
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "appService" "${APP_NAME}Service"
+replace_in_file "$APP_DIR/$APP_NAME.routes.ts" "appController" "${APP_NAME}Controller"
 
 # Create types file
-cat > "$APP_DIR/$APP_NAME.types.ts" << EOL
+cat > "$APP_DIR/$APP_NAME.types.ts" << 'EOL'
 // Add your types and interfaces here
 EOL
 
 # Create integration test file
-cat > "$TEST_DIR/$APP_NAME.integration.test.ts" << EOL
+cat > "$TEST_DIR/$APP_NAME.integration.test.ts" << 'EOL'
 import request from 'supertest';
 import express from 'express';
 import { prismaMock } from '../setup';
-import { create${APP_NAME^}Router } from '../../apps/${APP_NAME}/${APP_NAME}.routes';
+import { createAPPRouter } from '../../apps/APP/APP.routes';
 
-describe('${APP_NAME^} Integration Tests', () => {
-    const baseUrl = '/api/${APP_NAME}';
+describe('APP Integration Tests', () => {
+    const baseUrl = '/api/APP';
     let testApp: express.Application;
 
     beforeEach(async () => {
@@ -89,7 +111,7 @@ describe('${APP_NAME^} Integration Tests', () => {
         testApp.use(express.json());
         
         // Set up the routes with our mocked prisma
-        const router = create${APP_NAME^}Router(prismaMock);
+        const router = createAPPRouter(prismaMock);
         testApp.use(baseUrl, router);
     });
 
@@ -108,18 +130,20 @@ describe('${APP_NAME^} Integration Tests', () => {
     });
 });
 EOL
+replace_in_file "$TEST_DIR/$APP_NAME.integration.test.ts" "APP" "${APP_NAME}"
+replace_in_file "$TEST_DIR/$APP_NAME.integration.test.ts" "createappRouter" "create${APP_NAME_CAPITAL}Router"
 
 # Create unit test file
-cat > "$TEST_DIR/$APP_NAME.unit.test.ts" << EOL
-import { ${APP_NAME^}Service } from '../../apps/${APP_NAME}/${APP_NAME}.service';
+cat > "$TEST_DIR/$APP_NAME.unit.test.ts" << 'EOL'
+import { APPSERVICE } from '../../apps/APP/APP.service';
 import { prismaMock } from '../setup';
 
-describe('${APP_NAME^}Service', () => {
-    let ${APP_NAME}Service: ${APP_NAME^}Service;
+describe('APPSERVICE', () => {
+    let appService: APPSERVICE;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        ${APP_NAME}Service = new ${APP_NAME^}Service(prismaMock);
+        appService = new APPSERVICE(prismaMock);
     });
 
     describe('example method', () => {
@@ -136,6 +160,9 @@ describe('${APP_NAME^}Service', () => {
     });
 });
 EOL
+replace_in_file "$TEST_DIR/$APP_NAME.unit.test.ts" "APPSERVICE" "${APP_NAME_CAPITAL}Service"
+replace_in_file "$TEST_DIR/$APP_NAME.unit.test.ts" "APP" "${APP_NAME}"
+replace_in_file "$TEST_DIR/$APP_NAME.unit.test.ts" "appService" "${APP_NAME}Service"
 
 echo "✨ Successfully created new app: $APP_NAME"
 echo "📁 App Location: $APP_DIR"
