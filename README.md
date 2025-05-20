@@ -9,6 +9,7 @@ A TypeScript-based Express.js server with PostgreSQL database integration using 
 - **PostgreSQL** database integration
 - **Prisma ORM** for type-safe database queries
 - **Hot Reload** development environment
+- **Modular Architecture** with domain-driven design
 - **Health Monitoring** endpoint
 
 ## 📋 Prerequisites
@@ -68,33 +69,54 @@ This will start the server with hot-reload enabled.
 
 ## 🔍 API Endpoints
 
+### Users
+- **POST** `/api/users`
+  - Create a new user
+  - Body: `{ "email": "user@example.com", "name": "John Doe" }`
+
+- **GET** `/api/users`
+  - Get all users
+
+- **GET** `/api/users/:email`
+  - Get user by email
+
+- **PUT** `/api/users/:id`
+  - Update user
+  - Body: `{ "name": "Jane Doe" }`
+
+- **DELETE** `/api/users/:id`
+  - Delete user
+
 ### Health Check
 - **GET** `/api/monitoring/health`
   - Returns system health status including database connectivity
-  - Response example:
-    ```json
-    {
-      "status": "healthy",
-      "timestamp": "2024-02-20T12:00:00Z",
-      "database": "connected",
-      "service": "driver-server"
-    }
-    ```
 
 ## 📁 Project Structure
 
 ```
 driver-server/
 ├── src/
-│   ├── index.ts        # Entry point
-│   ├── app.ts          # Express app setup
-│   └── routes/
-│       └── monitoring.ts # Monitoring routes
+│   ├── apps/
+│   │   └── user/
+│   │       ├── user.service.ts    # Business logic
+│   │       ├── user.controller.ts # Request handling
+│   │       ├── user.routes.ts     # Route definitions
+│   │       └── user.types.ts      # Type definitions
+│   ├── index.ts                   # Entry point
+│   └── app.ts                     # Express app setup
 ├── prisma/
-│   └── schema.prisma   # Prisma schema
-├── dist/               # Compiled JavaScript
-└── node_modules/       # Dependencies
+│   └── schema.prisma             # Prisma schema
+├── dist/                         # Compiled JavaScript
+└── node_modules/                 # Dependencies
 ```
+
+## 🏗 Architecture
+
+The project follows a modular, domain-driven design:
+- **Services**: Core business logic
+- **Controllers**: Request/Response handling
+- **Routes**: API endpoint definitions
+- **Types**: TypeScript interfaces and types
 
 ## 🛠 Scripts
 
