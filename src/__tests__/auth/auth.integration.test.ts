@@ -4,6 +4,7 @@ import { prismaMock } from '../setup';
 import * as bcrypt from 'bcryptjs';
 import { createMockUser } from '../helpers/test.utils';
 import jwt from 'jsonwebtoken';
+import { sendEmail } from '../../utils/email.service';
 
 // Mock the auth middleware
 jest.mock('../../middleware/auth', () => ({
@@ -31,6 +32,10 @@ jest.mock('../../middleware/auth', () => ({
 describe('Auth Integration Tests', () => {
   const baseUrl = '/api/auth';
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('POST /register', () => {
     const registerData = {
       email: 'test@example.com',
@@ -49,6 +54,7 @@ describe('Auth Integration Tests', () => {
 
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue(mockUser);
+      (sendEmail as jest.Mock).mockResolvedValueOnce(undefined);
 
       const response = await request(app)
         .post(`${baseUrl}/register`)
@@ -57,6 +63,7 @@ describe('Auth Integration Tests', () => {
       expect(response.status).toBe(201);
       expect(response.body.user).toBeDefined();
       expect(response.body.token).toBeDefined();
+      expect(sendEmail).toHaveBeenCalled();
     });
 
     it('should return 400 for existing email', async () => {
@@ -81,6 +88,7 @@ describe('Auth Integration Tests', () => {
     it('should login successfully with valid credentials', async () => {
       const mockUser = createMockUser({
         email: loginData.email,
+        password: 'hashed_password',
         verified: true
       });
 
@@ -97,7 +105,13 @@ describe('Auth Integration Tests', () => {
     });
 
     it('should return 401 for invalid credentials', async () => {
-      prismaMock.user.findUnique.mockResolvedValue(null);
+      const mockUser = createMockUser({
+        email: loginData.email,
+        password: 'hashed_password'
+      });
+
+      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
       const response = await request(app)
         .post(`${baseUrl}/login`)
@@ -110,6 +124,7 @@ describe('Auth Integration Tests', () => {
     it('should return 401 for unverified user', async () => {
       const mockUser = createMockUser({
         email: loginData.email,
+        password: 'hashed_password',
         verified: false
       });
 
@@ -166,6 +181,7 @@ describe('Auth Integration Tests', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.message).toBe('Password changed successfully');
+        expect(response.body.user).toBeDefined();
       });
 
       it('should return 401 without token', async () => {
