@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { userRouter } from './apps/user/user.routes';
+import { authRouter } from './apps/auth/auth.routes';
 import { monitoringRouter } from './routes/monitoring';
 
 export const prisma = new PrismaClient();
@@ -9,6 +10,7 @@ const app = express();
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/monitoring', monitoringRouter);
 

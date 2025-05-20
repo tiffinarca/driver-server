@@ -11,9 +11,16 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    Int       @id @default(autoincrement())
+  email                 String    @unique
+  name                  String?
+  password              String?   // Hashed password for password-based auth
+  verificationToken     String?   @unique // For email verification
+  verified             Boolean   @default(false)
+  resetPasswordToken    String?   @unique
+  resetPasswordExpires  DateTime?
+  magicLinkToken       String?   @unique
+  magicLinkExpires     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 } 
