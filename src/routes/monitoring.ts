@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../app';
 import { redis } from '../config/redis';
+import { logger } from '../config/logger';
 
 export const monitoringRouter = Router();
 
@@ -20,6 +21,7 @@ monitoringRouter.get('/health', async (req: Request, res: Response) => {
       service: 'driver-server'
     };
     
+    logger.info('Health check passed', status);
     res.json(status);
   } catch (error) {
     const status = {
@@ -31,6 +33,10 @@ monitoringRouter.get('/health', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error'
     };
     
+    logger.error('Health check failed', {
+      ...status,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.status(503).json(status);
   }
 }); 

@@ -4,6 +4,7 @@ import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './auth.types';
 import { sendEmail } from '../../utils/email.service';
+import logger from '../../config/logger';
 
 export class AuthService {
   private prisma!: PrismaClient;  // Using definite assignment assertion
@@ -23,10 +24,10 @@ export class AuthService {
     // Test the connection
     this.prisma.$connect()
       .then(() => {
-        console.log('AuthService successfully connected to Prisma');
+        logger.info('AuthService successfully connected to Prisma');
       })
       .catch(error => {
-        console.error('AuthService failed to connect to Prisma:', error);
+        logger.error('AuthService failed to connect to Prisma:', error);
         throw error;
       });
   }

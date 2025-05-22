@@ -11,6 +11,159 @@ A Node.js/Express backend service with TypeScript, Prisma ORM, and comprehensive
 - **Hot Reload** development environment
 - **Modular Architecture** with domain-driven design
 - **Health Monitoring** endpoint
+- **Structured Logging** with Winston
+
+## 📝 Logging
+
+### Overview
+The application uses Winston for structured logging with different formats for development and production environments.
+
+### Log Levels
+```typescript
+{
+  error: 0,  // Errors that need immediate attention
+  warn: 1,   // Warnings that should be reviewed
+  info: 2,   // General information about app state
+  http: 3,   // HTTP request logs
+  debug: 4   // Detailed debugging information
+}
+```
+
+### Usage
+Import the logger in your files:
+```typescript
+import { logger } from '../config/logger';
+```
+
+#### Basic Logging
+```typescript
+// Error logging (with stack trace)
+try {
+  // ... your code
+} catch (error) {
+  logger.error('Operation failed', { 
+    error: error.message,
+    stack: error.stack,
+    context: 'OperationName'
+  });
+}
+
+// Warning logging
+logger.warn('Resource is running low', { 
+  resource: 'memory',
+  current: '85%',
+  threshold: '90%'
+});
+
+// Info logging
+logger.info('Operation successful', { 
+  operation: 'UserCreation',
+  userId: user.id
+});
+
+// HTTP request logging
+logger.http('API request received', {
+  method: 'POST',
+  path: '/api/users',
+  duration: '123ms'
+});
+
+// Debug logging
+logger.debug('Processing request', { 
+  step: 'validation',
+  payload: requestData
+});
+```
+
+#### Best Practices
+1. **Never use `console.log`**. Always use the appropriate logger level:
+   - `logger.error()` for errors that need immediate attention
+   - `logger.warn()` for warning conditions
+   - `logger.info()` for general operational information
+   - `logger.http()` for HTTP request logging
+   - `logger.debug()` for detailed debugging information
+
+2. **Structured Logging**
+   - Always include relevant context as a second parameter
+   - Include error stack traces for error logging
+   - Group related information in nested objects
+
+3. **Production vs Development**
+   - Development: Human-readable, colorized console output
+   - Production: JSON format, rotated log files
+   - Production logs are stored in:
+     - `logs/all-YYYY-MM-DD.log` (all logs)
+     - `logs/error-YYYY-MM-DD.log` (error logs only)
+
+4. **Sensitive Information**
+   - Never log sensitive data (passwords, tokens, etc.)
+   - Mask or exclude sensitive fields
+   - Use appropriate log levels to control verbosity
+
+#### Examples by Use Case
+
+**Authentication**
+```typescript
+// Success case
+logger.info('User authenticated', {
+  userId: user.id,
+  method: 'jwt',
+  timestamp: new Date().toISOString()
+});
+
+// Failure case
+logger.error('Authentication failed', {
+  reason: 'Invalid credentials',
+  attempt: {
+    email: maskedEmail,
+    ip: requestIp
+  }
+});
+```
+
+**Database Operations**
+```typescript
+// Before operation
+logger.debug('Executing database query', {
+  operation: 'findUser',
+  params: { email }
+});
+
+// After successful operation
+logger.info('Database operation completed', {
+  operation: 'findUser',
+  duration: `${endTime - startTime}ms`
+});
+
+// Error case
+logger.error('Database operation failed', {
+  operation: 'findUser',
+  error: error.message,
+  stack: error.stack
+});
+```
+
+**API Requests**
+```typescript
+// Incoming request
+logger.http('Request received', {
+  method: req.method,
+  path: req.path,
+  query: req.query,
+  headers: {
+    'user-agent': req.headers['user-agent'],
+    'content-type': req.headers['content-type']
+  }
+});
+
+// Response
+logger.http('Response sent', {
+  method: req.method,
+  path: req.path,
+  statusCode: res.statusCode,
+  duration: `${Date.now() - startTime}ms`
+});
+```
 
 ## 📋 Prerequisites
 

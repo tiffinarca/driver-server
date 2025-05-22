@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { logger } from './logger';
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -14,15 +15,20 @@ const redisConfig = {
 export const redis = new Redis(redisConfig);
 
 redis.on('connect', () => {
-  console.log('Successfully connected to Redis');
+  logger.info('Successfully connected to Redis');
 });
 
 redis.on('error', (error) => {
-  console.error('Redis connection error:', error);
+  logger.error('Redis connection error:', { 
+    error: error.message,
+    stack: error.stack 
+  });
 });
 
 process.on('SIGTERM', async () => {
+  logger.info('Received SIGTERM signal, closing Redis connection...');
   await redis.quit();
+  logger.info('Redis connection closed');
   process.exit(0);
 });
 
