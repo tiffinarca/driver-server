@@ -1,17 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../app';
+import { redis } from '../config/redis';
 
 export const monitoringRouter = Router();
 
 monitoringRouter.get('/health', async (req: Request, res: Response) => {
   try {
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
+    // Test database and Redis connections
+    await Promise.all([
+      prisma.$queryRaw`SELECT 1`,
+      redis.ping()
+    ]);
     
     const status = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       database: 'connected',
+      redis: 'connected',
       service: 'driver-server'
     };
     
@@ -20,7 +25,8 @@ monitoringRouter.get('/health', async (req: Request, res: Response) => {
     const status = {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      database: 'disconnected',
+      database: error instanceof Error && error.message.includes('prisma') ? 'disconnected' : 'connected',
+      redis: error instanceof Error && error.message.includes('redis') ? 'disconnected' : 'connected',
       service: 'driver-server',
       error: error instanceof Error ? error.message : 'Unknown error'
     };
