@@ -10,17 +10,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum DriverStatus {
+  PENDING     // e.g. just signed up, not vetted yet
+  ACTIVE      // can receive assignments
+  SUSPENDED   // temporarily barred (e.g. for policy violation)
+  RETIRED     // no longer driving
+}
+
+model Vehicle {
+  id            Int       @id @default(autoincrement())
+  driver        User      @relation(fields: [driverId], references: [id])
+  driverId      Int
+
+  make          String    // e.g. "Toyota"
+  model         String    // e.g. "Corolla"
+  licensePlate  String    @unique
+  color         String?
+  capacity      Int?      // seats, or load capacity
+
+  verified      Boolean   @default(false)  // fleet admin verified this vehicle
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
 model User {
-  id                    Int       @id @default(autoincrement())
-  email                 String    @unique
+  id                    Int            @id @default(autoincrement())
+  email                 String         @unique
   name                  String?
-  password              String?   // Hashed password for password-based auth
-  verificationToken     String?   @unique // For email verification
-  verified             Boolean   @default(false)
-  resetPasswordToken    String?   @unique
+  password              String?        // Hashed password for password-based auth
+  verificationToken     String?        @unique // for email verification
+  verified              Boolean        @default(false)
+  resetPasswordToken    String?        @unique
   resetPasswordExpires  DateTime?
-  magicLinkToken       String?   @unique
-  magicLinkExpires     DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  magicLinkToken        String?        @unique
+  magicLinkExpires      DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // Driver specific fields
+  driverStatus         DriverStatus   @default(PENDING)
+  vehicles             Vehicle[]
 } 
