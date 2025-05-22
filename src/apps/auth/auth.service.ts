@@ -2,7 +2,7 @@ import { PrismaClient, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
-import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './auth.types';
+import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto, UserProfile } from './auth.types';
 import { sendEmail } from '../../utils/email.service';
 import logger from '../../config/logger';
 
@@ -30,6 +30,37 @@ export class AuthService {
         logger.error('AuthService failed to connect to Prisma:', error);
         throw error;
       });
+  }
+
+  // Get user by ID with safe fields
+  async getUserById(userId: number): Promise<UserProfile | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        verified: true,
+        driverStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        vehicles: {
+          select: {
+            id: true,
+            make: true,
+            model: true,
+            licensePlate: true,
+            color: true,
+            capacity: true,
+            verified: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
+      }
+    });
+
+    return user;
   }
 
   private generateToken(userId: number): string {

@@ -2,6 +2,11 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './auth.types';
 
+// Extend Request type to include user property
+interface AuthenticatedRequest extends Request {
+  user?: { id: number };
+}
+
 export class AuthController {
   private authService: AuthService;
 
@@ -82,6 +87,26 @@ export class AuthController {
       res.json({ user, token });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid magic link' });
+    }
+  };
+
+  getCurrentUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const user = await this.authService.getUserById(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      res.json({ user });
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get user profile' });
     }
   };
 } 

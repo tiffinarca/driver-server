@@ -1,3 +1,5 @@
+import { DriverStatus } from '@prisma/client';
+
 export interface RegisterDto {
   email: string;
   password?: string;
@@ -39,4 +41,26 @@ export interface MagicLinkLoginDto {
 
 export interface VerifyMagicLinkDto {
   token: string;
+}
+
+// Type for user profile response (excludes sensitive fields)
+export interface UserProfile {
+  id: number;
+  email: string;
+  name: string | null;
+  verified: boolean;
+  driverStatus: DriverStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  vehicles?: {
+    id: number;
+    make: string;
+    model: string;
+    licensePlate: string;
+    color: string | null;
+    capacity: number | null;
+    verified: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
 } 

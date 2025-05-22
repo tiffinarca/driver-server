@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
+import { DriverStatus } from '@prisma/client';
+import { CreateVehicleDto, UpdateVehicleDto } from './user.types';
 
 export class UserController {
   private userService: UserService;
@@ -17,7 +19,7 @@ export class UserController {
     }
   };
 
-   getUser = async (req: Request, res: Response): Promise<void> => {
+  getUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = await this.userService.getUserByEmail(req.params.email);
       if (!user) {
@@ -30,7 +32,7 @@ export class UserController {
     }
   };
 
-   getAllUsers = async (_req: Request, res: Response): Promise<void> => {
+  getAllUsers = async (_req: Request, res: Response): Promise<void> => {
     try {
       const users = await this.userService.getAllUsers();
       res.json(users);
@@ -39,7 +41,7 @@ export class UserController {
     }
   };
 
-   updateUser = async (req: Request, res: Response): Promise<void> => {
+  updateUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = await this.userService.updateUser(Number(req.params.id), req.body);
       res.json(user);
@@ -48,12 +50,84 @@ export class UserController {
     }
   };
 
-   deleteUser = async (req: Request, res: Response): Promise<void> => {
+  deleteUser = async (req: Request, res: Response): Promise<void> => {
     try {
       await this.userService.deleteUser(Number(req.params.id));
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to delete user' });
+    }
+  };
+
+  // Vehicle related endpoints
+  addVehicle = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      const vehicleData = req.body as CreateVehicleDto;
+      const vehicle = await this.userService.addVehicle(userId, vehicleData);
+      res.status(201).json(vehicle);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to add vehicle' });
+    }
+  };
+
+  updateVehicle = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const vehicleId = Number(req.params.vehicleId);
+      const vehicleData = req.body as UpdateVehicleDto;
+      const vehicle = await this.userService.updateVehicle(vehicleId, vehicleData);
+      res.json(vehicle);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to update vehicle' });
+    }
+  };
+
+  deleteVehicle = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const vehicleId = Number(req.params.vehicleId);
+      await this.userService.deleteVehicle(vehicleId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to delete vehicle' });
+    }
+  };
+
+  getVehicle = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const vehicleId = Number(req.params.vehicleId);
+      const vehicle = await this.userService.getVehicle(vehicleId);
+      if (!vehicle) {
+        res.status(404).json({ error: 'Vehicle not found' });
+        return;
+      }
+      res.json(vehicle);
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get vehicle' });
+    }
+  };
+
+  getUserVehicles = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      const vehicles = await this.userService.getUserVehicles(userId);
+      res.json(vehicles);
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get user vehicles' });
+    }
+  };
+
+  updateDriverStatus = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      const status = req.body.status as DriverStatus;
+      if (!Object.values(DriverStatus).includes(status)) {
+        res.status(400).json({ error: 'Invalid driver status' });
+        return;
+      }
+      const user = await this.userService.updateDriverStatus(userId, status);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to update driver status' });
     }
   };
 } 
