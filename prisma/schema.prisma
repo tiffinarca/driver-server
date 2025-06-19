@@ -50,4 +50,8 @@ model User {
   // Driver specific fields
   driverStatus         DriverStatus   @default(PENDING)
   vehicles             Vehicle[]
+  
+  // Profile image fields
+  profileImageUrl      String?        // Cloudinary secure URL
+  profileImagePublicId String?        // Cloudinary public ID for deletion
 } 

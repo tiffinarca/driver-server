@@ -59,6 +59,68 @@ export class UserController {
     }
   };
 
+  // Profile image methods
+  uploadProfileImage = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      
+      if (!req.file) {
+        res.status(400).json({ error: 'No image file provided' });
+        return;
+      }
+
+      const result = await this.userService.uploadProfileImage(userId, req.file.buffer);
+      res.status(201).json({
+        message: 'Profile image uploaded successfully',
+        data: result
+      });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to upload profile image' });
+    }
+  };
+
+  updateProfileImage = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      
+      if (!req.file) {
+        res.status(400).json({ error: 'No image file provided' });
+        return;
+      }
+
+      const result = await this.userService.updateProfileImage(userId, req.file.buffer);
+      res.json({
+        message: 'Profile image updated successfully',
+        data: result
+      });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to update profile image' });
+    }
+  };
+
+  deleteProfileImage = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      const result = await this.userService.deleteProfileImage(userId);
+      res.json({
+        message: 'Profile image deleted successfully',
+        data: result
+      });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to delete profile image' });
+    }
+  };
+
+  getProfileImage = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = Number(req.params.userId);
+      const result = await this.userService.getProfileImage(userId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get profile image' });
+    }
+  };
+
   // Vehicle related endpoints
   addVehicle = async (req: Request, res: Response): Promise<void> => {
     try {

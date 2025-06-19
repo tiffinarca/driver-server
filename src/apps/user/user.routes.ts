@@ -3,6 +3,7 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { UserMiddleware } from './middleware/user.middleware';
 import { AuthMiddleware } from '../../apps/auth/middleware/auth.middleware';
+import { uploadProfileImage, handleUploadError } from '../../middleware/upload.middleware';
 import { PrismaClient } from '@prisma/client';
 
 export function createUserRouter(prisma: PrismaClient) {
@@ -35,6 +36,35 @@ export function createUserRouter(prisma: PrismaClient) {
     authMiddleware.authenticateToken,
     userMiddleware.authorizeUser,
     userController.updateDriverStatus
+  );
+
+  // Profile image routes - all protected
+  userRouter.post('/:userId/profile-image',
+    authMiddleware.authenticateToken,
+    userMiddleware.authorizeUser,
+    uploadProfileImage,
+    handleUploadError,
+    userController.uploadProfileImage
+  );
+
+  userRouter.put('/:userId/profile-image',
+    authMiddleware.authenticateToken,
+    userMiddleware.authorizeUser,
+    uploadProfileImage,
+    handleUploadError,
+    userController.updateProfileImage
+  );
+
+  userRouter.delete('/:userId/profile-image',
+    authMiddleware.authenticateToken,
+    userMiddleware.authorizeUser,
+    userController.deleteProfileImage
+  );
+
+  userRouter.get('/:userId/profile-image',
+    authMiddleware.authenticateToken,
+    userMiddleware.authorizeUser,
+    userController.getProfileImage
   );
 
   // Vehicle routes - all protected

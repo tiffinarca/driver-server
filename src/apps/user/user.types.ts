@@ -35,6 +35,7 @@ export interface UserResponse {
   driverStatus: DriverStatus;
   createdAt: Date;
   updatedAt: Date;
+  profileImageUrl?: string | null;
   vehicles?: VehicleResponse[];
 }
 
@@ -47,5 +48,18 @@ export interface VehicleResponse {
   capacity: number | null;
   verified: boolean;
   createdAt: Date;
+  updatedAt: Date;
+}
+
+// Profile image related types
+export interface ProfileImageUploadDto {
+  userId: number;
+  file: Express.Multer.File;
+}
+
+export interface ProfileImageResponse {
+  id: number;
+  profileImageUrl: string | null;
+  profileImagePublicId: string | null;
   updatedAt: Date;
 } 

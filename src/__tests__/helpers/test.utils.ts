@@ -1,4 +1,4 @@
-import { PrismaClient, User } from '@prisma/client';
+import { PrismaClient, User, DriverStatus } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
 
 export const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -12,6 +12,9 @@ export const createMockUser = (overrides: Partial<User> = {}): User => ({
   resetPasswordExpires: null,
   magicLinkToken: null,
   magicLinkExpires: null,
+  driverStatus: DriverStatus.ACTIVE,
+  profileImageUrl: null,
+  profileImagePublicId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides
