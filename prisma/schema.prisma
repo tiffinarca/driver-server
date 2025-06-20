@@ -50,8 +50,29 @@ model User {
   // Driver specific fields
   driverStatus         DriverStatus   @default(PENDING)
   vehicles             Vehicle[]
+  serviceAreas         DriverServiceArea[]
   
   // Profile image fields
   profileImageUrl      String?        // Cloudinary secure URL
   profileImagePublicId String?        // Cloudinary public ID for deletion
+}
+
+model DriverServiceArea {
+  id         String   @id @default(uuid())
+  driverId   Int      @map("driver_id")
+  areaName   String   @map("area_name")
+  postalCode String?  @map("postal_code")
+  city       String
+  state      String
+  country    String   @default("USA")
+  latitude   Decimal  @db.Decimal(10, 8)
+  longitude  Decimal  @db.Decimal(11, 8)
+  radiusKm   Int      @default(10) @map("radius_km")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  driver User @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, areaName])
+  @@map("driver_service_areas")
 } 
