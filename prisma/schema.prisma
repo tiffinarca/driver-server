@@ -51,6 +51,8 @@ model User {
   driverStatus         DriverStatus   @default(PENDING)
   vehicles             Vehicle[]
   serviceAreas         DriverServiceArea[]
+  schedules            DriverSchedule[]
+  availabilityBlocks   DriverAvailabilityBlock[]
   
   // Profile image fields
   profileImageUrl      String?        // Cloudinary secure URL
@@ -75,4 +77,37 @@ model DriverServiceArea {
 
   @@unique([driverId, areaName])
   @@map("driver_service_areas")
+}
+
+model DriverSchedule {
+  id            String   @id @default(uuid())
+  driverId      Int      @map("driver_id")
+  dayOfWeek     Int      @map("day_of_week") @db.SmallInt
+  startTime     DateTime @db.Time() @map("start_time")
+  endTime       DateTime @db.Time() @map("end_time")
+  isAvailable   Boolean  @default(true) @map("is_available")
+  maxDeliveries Int      @default(70) @map("max_deliveries")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  driver User @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, dayOfWeek])
+  @@map("driver_schedules")
+}
+
+model DriverAvailabilityBlock {
+  id          String    @id @default(uuid())
+  driverId    Int       @map("driver_id")
+  blockedDate DateTime  @db.Date() @map("blocked_date")
+  reason      String?
+  isFullDay   Boolean   @default(true) @map("is_full_day")
+  startTime   DateTime? @db.Time() @map("start_time")
+  endTime     DateTime? @db.Time() @map("end_time")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  driver User @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, blockedDate, startTime, endTime])
+  @@map("driver_availability_blocks")
 } 

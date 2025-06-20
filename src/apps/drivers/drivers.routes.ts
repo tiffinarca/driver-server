@@ -10,31 +10,59 @@ export function createDriversRouter(prisma: PrismaClient) {
   const authMiddleware = new AuthMiddleware(prisma);
   const driversRouter = Router();
 
-  // All driver service area routes are protected - require authentication
-  // We use authenticateToken since we only need the user ID for these operations
+  // All driver routes are protected - require authentication
   
-  // GET /api/drivers/service-areas - Get driver's service areas
+  // Service Area routes
   driversRouter.get('/service-areas', 
     authMiddleware.authenticateToken,
     driversController.getServiceAreas
   );
 
-  // POST /api/drivers/service-areas - Add new service area
   driversRouter.post('/service-areas', 
     authMiddleware.authenticateToken,
     driversController.createServiceArea
   );
 
-  // PUT /api/drivers/service-areas/:id - Update service area
   driversRouter.put('/service-areas/:id', 
     authMiddleware.authenticateToken,
     driversController.updateServiceArea
   );
 
-  // DELETE /api/drivers/service-areas/:id - Remove service area
   driversRouter.delete('/service-areas/:id', 
     authMiddleware.authenticateToken,
     driversController.deleteServiceArea
+  );
+
+  // Schedule routes
+  // GET /api/drivers/schedules - Get driver's weekly schedule
+  driversRouter.get('/schedules', 
+    authMiddleware.authenticateToken,
+    driversController.getSchedules
+  );
+
+  // PUT /api/drivers/schedules - Update entire schedule
+  driversRouter.put('/schedules', 
+    authMiddleware.authenticateToken,
+    driversController.updateWeeklySchedule
+  );
+
+  // PUT /api/drivers/schedules/:day - Update specific day schedule
+  driversRouter.put('/schedules/:day', 
+    authMiddleware.authenticateToken,
+    driversController.updateDaySchedule
+  );
+
+  // Availability blocking routes
+  // POST /api/drivers/availability/block - Block specific dates
+  driversRouter.post('/availability/block', 
+    authMiddleware.authenticateToken,
+    driversController.createAvailabilityBlock
+  );
+
+  // DELETE /api/drivers/availability/block/:id - Unblock dates
+  driversRouter.delete('/availability/block/:id', 
+    authMiddleware.authenticateToken,
+    driversController.deleteAvailabilityBlock
   );
 
   return driversRouter;
