@@ -9,6 +9,7 @@ export interface CreateAssignmentDto {
   estimatedDeliveries: number;
   paymentType?: PaymentType;
   paymentRate: number;
+  algorithmScore?: number; // Score from assignment algorithm
   notes?: string;
 }
 
@@ -20,6 +21,7 @@ export interface UpdateAssignmentDto {
   actualDeliveries?: number;
   paymentType?: PaymentType;
   paymentRate?: number;
+  algorithmScore?: number; // Score from assignment algorithm
   notes?: string;
 }
 
@@ -35,6 +37,7 @@ export interface AssignmentResponse {
   status: AssignmentStatus;
   paymentType: PaymentType;
   paymentRate: number;
+  algorithmScore: number | null; // Score from assignment algorithm
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;

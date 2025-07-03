@@ -31,6 +31,7 @@ export class AssignmentsService {
         estimatedDeliveries: assignmentData.estimatedDeliveries,
         paymentType: assignmentData.paymentType || 'FIXED',
         paymentRate: assignmentData.paymentRate,
+        algorithmScore: assignmentData.algorithmScore || 0,
         notes: assignmentData.notes,
       },
       include: {
@@ -318,6 +319,10 @@ export class AssignmentsService {
       dataToUpdate.paymentRate = updateData.paymentRate;
     }
 
+    if (updateData.algorithmScore !== undefined) {
+      dataToUpdate.algorithmScore = updateData.algorithmScore;
+    }
+
     if (updateData.notes !== undefined) {
       dataToUpdate.notes = updateData.notes;
     }
@@ -476,6 +481,7 @@ export class AssignmentsService {
       status: assignment.status,
       paymentType: assignment.paymentType,
       paymentRate: parseFloat(assignment.paymentRate.toString()),
+      algorithmScore: assignment.algorithmScore ? parseFloat(assignment.algorithmScore.toString()) : null,
       notes: assignment.notes,
       createdAt: assignment.createdAt,
       updatedAt: assignment.updatedAt,

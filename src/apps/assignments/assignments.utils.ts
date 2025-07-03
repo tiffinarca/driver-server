@@ -21,6 +21,8 @@ export class AssignmentUtils {
       areaName: string;
       city: string;
       state: string;
+      latitude: number;
+      longitude: number;
       radiusKm: number;
     }>;
     currentAssignments: number;
@@ -42,6 +44,8 @@ export class AssignmentUtils {
             areaName: true,
             city: true,
             state: true,
+            latitude: true,
+            longitude: true,
             radiusKm: true,
           },
         },
@@ -82,7 +86,14 @@ export class AssignmentUtils {
         id: driver.id,
         name: driver.name,
         email: driver.email,
-        serviceAreas: driver.serviceAreas,
+        serviceAreas: driver.serviceAreas.map(area => ({
+          areaName: area.areaName,
+          city: area.city,
+          state: area.state,
+          latitude: parseFloat(area.latitude.toString()),
+          longitude: parseFloat(area.longitude.toString()),
+          radiusKm: area.radiusKm,
+        })),
         currentAssignments: driver.restaurantAssignments.length,
       }));
   }
@@ -266,6 +277,7 @@ export class AssignmentUtils {
             estimatedDeliveries: assignmentData.estimatedDeliveries,
             paymentType: assignmentData.paymentType || 'FIXED',
             paymentRate: assignmentData.paymentRate,
+            algorithmScore: assignmentData.algorithmScore || 0,
             notes: assignmentData.notes,
           },
         });

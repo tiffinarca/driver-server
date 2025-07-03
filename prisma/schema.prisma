@@ -137,6 +137,7 @@ model RestaurantAssignment {
   status               AssignmentStatus @default(PENDING)
   paymentType          PaymentType      @default(FIXED) @map("payment_type")
   paymentRate          Decimal          @db.Decimal(10, 2) @map("payment_rate")
+  algorithmScore       Decimal?         @db.Decimal(5, 2) @default(0) @map("algorithm_score")
   notes                String?
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
@@ -151,5 +152,6 @@ model RestaurantAssignment {
   @@unique([driverId, restaurantId, assignmentDate])
   @@index([assignmentDate])
   @@index([driverId, status])
+  @@index([algorithmScore])
   @@map("restaurant_assignments")
 } 
