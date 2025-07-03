@@ -17,6 +17,19 @@ enum DriverStatus {
   RETIRED     // no longer driving
 }
 
+enum AssignmentStatus {
+  PENDING     // Assignment created but not started
+  STARTED     // Driver has started the assignment
+  COMPLETED   // Assignment completed
+  CANCELLED   // Assignment cancelled
+}
+
+enum PaymentType {
+  FIXED       // Fixed rate payment
+  PER_DELIVERY // Payment per delivery
+  HOURLY      // Hourly rate
+}
+
 model Vehicle {
   id            Int       @id @default(autoincrement())
   driver        User      @relation(fields: [driverId], references: [id])
@@ -53,6 +66,7 @@ model User {
   serviceAreas         DriverServiceArea[]
   schedules            DriverSchedule[]
   availabilityBlocks   DriverAvailabilityBlock[]
+  restaurantAssignments RestaurantAssignment[]
   
   // Profile image fields
   profileImageUrl      String?        // Cloudinary secure URL
@@ -110,4 +124,32 @@ model DriverAvailabilityBlock {
 
   @@unique([driverId, blockedDate, startTime, endTime])
   @@map("driver_availability_blocks")
+}
+
+model RestaurantAssignment {
+  id                   String           @id @default(uuid())
+  driverId             Int              @map("driver_id")
+  restaurantId         String           @map("restaurant_id")
+  assignmentDate       DateTime         @db.Date @map("assignment_date")
+  pickupTime           DateTime         @db.Time() @map("pickup_time")
+  estimatedDeliveries  Int              @map("estimated_deliveries")
+  actualDeliveries     Int?             @map("actual_deliveries")
+  status               AssignmentStatus @default(PENDING)
+  paymentType          PaymentType      @default(FIXED) @map("payment_type")
+  paymentRate          Decimal          @db.Decimal(10, 2) @map("payment_rate")
+  notes                String?
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  driver User @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  
+  // Future implementation - commented out for now
+  // deliveries     Delivery[]
+  // deliveryRoutes DeliveryRoute[]
+  // earnings       DriverEarning[]
+
+  @@unique([driverId, restaurantId, assignmentDate])
+  @@index([assignmentDate])
+  @@index([driverId, status])
+  @@map("restaurant_assignments")
 } 

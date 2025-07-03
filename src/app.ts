@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { createUserRouter } from './apps/user/user.routes';
 import { createAuthRouter } from './apps/auth/auth.routes';
 import { createDriversRouter } from './apps/drivers/drivers.routes';
+import { createAssignmentsRouter } from './apps/assignments/assignments.routes';
 import { monitoringRouter } from './routes/monitoring';
 import { redis } from './config/redis';
 import { logger } from './config/logger';
@@ -30,11 +31,13 @@ async function initializeApp() {
     const authRouter = createAuthRouter(prisma);
     const userRouter = createUserRouter(prisma);
     const driversRouter = createDriversRouter(prisma);
+    const assignmentsRouter = createAssignmentsRouter(prisma);
 
     // Routes - only set up after connections are established
     app.use('/api/auth', authRouter);
     app.use('/api/users', userRouter);
     app.use('/api/drivers', driversRouter);
+    app.use('/api/assignments', assignmentsRouter);
     app.use('/api/monitoring', monitoringRouter);
 
     // Error handling middleware
