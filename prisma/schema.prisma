@@ -30,6 +30,15 @@ enum PaymentType {
   HOURLY      // Hourly rate
 }
 
+enum DeliveryStatus {
+  PENDING     // Delivery is pending
+  PICKED_UP   // Food has been picked up from restaurant
+  IN_TRANSIT  // Driver is en route to customer
+  DELIVERED   // Successfully delivered
+  FAILED      // Delivery failed/couldn't complete
+  CANCELLED   // Delivery was cancelled
+}
+
 model Vehicle {
   id            Int       @id @default(autoincrement())
   driver        User      @relation(fields: [driverId], references: [id])
@@ -144,14 +153,52 @@ model RestaurantAssignment {
 
   driver User @relation(fields: [driverId], references: [id], onDelete: Cascade)
   
-  // Future implementation - commented out for now
-  // deliveries     Delivery[]
-  // deliveryRoutes DeliveryRoute[]
-  // earnings       DriverEarning[]
+  // Route optimization and delivery relations
+  deliveries     Delivery[]
+  deliveryRoutes DeliveryRoute[]
 
   @@unique([driverId, restaurantId, assignmentDate])
   @@index([assignmentDate])
   @@index([driverId, status])
   @@index([algorithmScore])
   @@map("restaurant_assignments")
+}
+
+model DeliveryRoute {
+  id                      String   @id @default(uuid())
+  assignmentId            String   @map("assignment_id")
+  routePolyline           String?  @map("route_polyline") @db.Text
+  totalDistanceKm         Decimal  @db.Decimal(10, 2) @map("total_distance_km")
+  estimatedDurationMinutes Int     @map("estimated_duration_minutes")
+  optimizedStopSequence   Json     @map("optimized_stop_sequence")
+  routeMetadata           Json?    @map("route_metadata")
+  calculatedAt            DateTime @default(now()) @map("calculated_at")
+  isActive                Boolean  @default(true) @map("is_active")
+
+  assignment RestaurantAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_routes")
+}
+
+model Delivery {
+  id               String         @id @default(uuid())
+  assignmentId     String         @map("assignment_id")
+  clientId         String         @map("client_id")
+  deliveryAddress  Json           @map("delivery_address")
+  deliveryLatitude Decimal        @db.Decimal(10, 8) @map("delivery_latitude")
+  deliveryLongitude Decimal       @db.Decimal(11, 8) @map("delivery_longitude")
+  sequenceNumber   Int            @map("sequence_number")
+  status           DeliveryStatus @default(PENDING)
+  proofImageUrl    String?        @map("proof_image_url")
+  deliveredAt      DateTime?      @map("delivered_at")
+  deliveryNotes    String?        @map("delivery_notes")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  assignment RestaurantAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@index([status])
+  @@index([clientId])
+  @@map("deliveries")
 } 

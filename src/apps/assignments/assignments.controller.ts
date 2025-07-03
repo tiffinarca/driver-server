@@ -120,9 +120,8 @@ export class AssignmentsController {
       }
 
       const assignmentId = req.params.id;
-      const data: StartAssignmentDto = req.body;
 
-      const assignment = await this.assignmentsService.startAssignment(assignmentId, req.userId, data);
+      const assignment = await this.assignmentsService.startAssignment(assignmentId, req.userId);
       res.json(assignment);
     } catch (error) {
       logger.error('Error starting assignment:', { error: error instanceof Error ? error.message : error });
@@ -150,15 +149,8 @@ export class AssignmentsController {
       }
 
       const assignmentId = req.params.id;
-      const data: CompleteAssignmentDto = req.body;
 
-      // Validate required fields
-      if (data.actualDeliveries === undefined || data.actualDeliveries < 0) {
-        res.status(400).json({ error: 'actualDeliveries is required and must be 0 or greater' });
-        return;
-      }
-
-      const assignment = await this.assignmentsService.completeAssignment(assignmentId, req.userId, data);
+      const assignment = await this.assignmentsService.completeAssignment(assignmentId, req.userId);
       res.json(assignment);
     } catch (error) {
       logger.error('Error completing assignment:', { error: error instanceof Error ? error.message : error });

@@ -13,46 +13,57 @@ export interface CreateAssignmentDto {
   notes?: string;
 }
 
+// DTO for starting an assignment
+export interface StartAssignmentDto {
+  notes?: string;
+}
+
+// DTO for completing an assignment
+export interface CompleteAssignmentDto {
+  actualDeliveries: number;
+  notes?: string;
+}
+
 // DTO for updating an assignment
 export interface UpdateAssignmentDto {
-  assignmentDate?: string; // YYYY-MM-DD format
-  pickupTime?: string; // HH:MM format
+  assignmentDate?: string;
+  pickupTime?: string;
   estimatedDeliveries?: number;
   actualDeliveries?: number;
   paymentType?: PaymentType;
   paymentRate?: number;
-  algorithmScore?: number; // Score from assignment algorithm
+  algorithmScore?: number;
   notes?: string;
 }
 
-// Response interface for assignment details
+// Response format for assignments
 export interface AssignmentResponse {
   id: string;
   driverId: number;
+  driver: {
+    id: number;
+    name: string | null;
+    email: string;
+  };
   restaurantId: string;
-  assignmentDate: Date;
+  assignmentDate: string; // YYYY-MM-DD format
   pickupTime: string; // HH:MM format
   estimatedDeliveries: number;
   actualDeliveries: number | null;
   status: AssignmentStatus;
   paymentType: PaymentType;
   paymentRate: number;
-  algorithmScore: number | null; // Score from assignment algorithm
+  algorithmScore: number | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
-  driver: {
-    id: number;
-    name: string | null;
-    email: string;
-  };
 }
 
-// Response for assignment lists
+// Response format for paginated assignment lists
 export interface AssignmentListResponse {
   assignments: AssignmentResponse[];
   total: number;
-  pagination?: {
+  pagination: {
     page: number;
     limit: number;
     totalPages: number;
@@ -69,18 +80,15 @@ export interface AssignmentFilters {
   limit?: number;
 }
 
-// DTO for starting an assignment
-export interface StartAssignmentDto {
-  notes?: string;
+// Assignment summary data
+export interface AssignmentSummary {
+  totalAssignments: number;
+  pendingAssignments: number;
+  todayAssignments: number;
+  completedThisWeek: number;
 }
 
-// DTO for completing an assignment
-export interface CompleteAssignmentDto {
-  actualDeliveries: number;
-  notes?: string;
-}
-
-// Response for assignment summary/dashboard
+// Assignment summary response (for API)
 export interface AssignmentSummaryResponse {
   totalAssignments: number;
   pendingAssignments: number;
@@ -89,7 +97,13 @@ export interface AssignmentSummaryResponse {
   upcomingAssignments: number;
 }
 
-// Interface for assignment validation
+// Validation result interface
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+// Assignment validation (legacy interface for compatibility)
 export interface AssignmentValidation {
   isValid: boolean;
   errors: string[];

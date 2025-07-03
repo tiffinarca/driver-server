@@ -1,4 +1,7 @@
 import { PrismaClient, AssignmentStatus } from '@prisma/client';
+import { AssignmentUtils } from './assignments.utils';
+import { RoutingService } from '../routing/routing.service';
+import { DeliveriesService } from '../deliveries/deliveries.service';
 import {
   CreateAssignmentDto,
   UpdateAssignmentDto,
@@ -8,11 +11,21 @@ import {
   StartAssignmentDto,
   CompleteAssignmentDto,
   AssignmentSummaryResponse,
-  AssignmentValidation
+  AssignmentValidation,
+  AssignmentSummary,
+  ValidationResult
 } from './assignments.types';
 
 export class AssignmentsService {
-  constructor(private prisma: PrismaClient) {}
+  private assignmentUtils: AssignmentUtils;
+  private routingService: RoutingService;
+  private deliveriesService: DeliveriesService;
+
+  constructor(private prisma: PrismaClient) {
+    this.assignmentUtils = new AssignmentUtils(prisma);
+    this.routingService = new RoutingService(prisma);
+    this.deliveriesService = new DeliveriesService(prisma);
+  }
 
   // Create a new restaurant assignment
   async createAssignment(assignmentData: CreateAssignmentDto): Promise<AssignmentResponse> {
@@ -169,12 +182,32 @@ export class AssignmentsService {
   }
 
   // Get assignment by ID
-  async getAssignmentById(assignmentId: string, driverId: number): Promise<AssignmentResponse> {
-    const assignment = await this.prisma.restaurantAssignment.findFirst({
-      where: {
-        id: assignmentId,
-        driverId,
+  async getAssignmentById(assignmentId: string, driverId?: number): Promise<AssignmentResponse | null> {
+    const where: any = { id: assignmentId };
+    if (driverId) {
+      where.driverId = driverId;
+    }
+
+    const assignment = await this.prisma.restaurantAssignment.findUnique({
+      where,
+      include: {
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
+    });
+
+    return assignment ? this.formatAssignmentResponse(assignment) : null;
+  }
+
+  // Start an assignment (with route calculation and delivery setup)
+  async startAssignment(assignmentId: string, driverId: number): Promise<AssignmentResponse> {
+    const assignment = await this.prisma.restaurantAssignment.findUnique({
+      where: { id: assignmentId },
       include: {
         driver: {
           select: {
@@ -190,37 +223,20 @@ export class AssignmentsService {
       throw new Error('Assignment not found');
     }
 
-    return this.formatAssignmentResponse(assignment);
-  }
-
-  // Start an assignment
-  async startAssignment(
-    assignmentId: string,
-    driverId: number,
-    data: StartAssignmentDto
-  ): Promise<AssignmentResponse> {
-    const assignment = await this.prisma.restaurantAssignment.findFirst({
-      where: {
-        id: assignmentId,
-        driverId,
-      },
-    });
-
-    if (!assignment) {
-      throw new Error('Assignment not found');
+    if (assignment.driverId !== driverId) {
+      throw new Error('Assignment does not belong to this driver');
     }
 
     if (assignment.status !== AssignmentStatus.PENDING) {
-      throw new Error('Assignment can only be started if it is pending');
+      throw new Error(`Cannot start assignment with status: ${assignment.status}`);
     }
 
+    // Update assignment status to STARTED
     const updatedAssignment = await this.prisma.restaurantAssignment.update({
-      where: {
-        id: assignmentId,
-      },
-      data: {
+      where: { id: assignmentId },
+      data: { 
         status: AssignmentStatus.STARTED,
-        notes: data.notes || assignment.notes,
+        updatedAt: new Date(),
       },
       include: {
         driver: {
@@ -232,20 +248,35 @@ export class AssignmentsService {
         },
       },
     });
+
+    // Try to calculate route and set up deliveries
+    try {
+      await this.setupRouteAndDeliveries(assignmentId, assignment.restaurantId);
+      
+      // Mark all deliveries as picked up since assignment has started
+      await this.deliveriesService.markDeliveriesAsPickedUp(assignmentId);
+      
+    } catch (error) {
+      console.warn(`Failed to set up route for assignment ${assignmentId}:`, error);
+      // Continue with assignment start even if route calculation fails
+    }
 
     return this.formatAssignmentResponse(updatedAssignment);
   }
 
   // Complete an assignment
-  async completeAssignment(
-    assignmentId: string,
-    driverId: number,
-    data: CompleteAssignmentDto
-  ): Promise<AssignmentResponse> {
-    const assignment = await this.prisma.restaurantAssignment.findFirst({
-      where: {
-        id: assignmentId,
-        driverId,
+  async completeAssignment(assignmentId: string, driverId: number): Promise<AssignmentResponse> {
+    const assignment = await this.prisma.restaurantAssignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        deliveries: true,
       },
     });
 
@@ -253,18 +284,23 @@ export class AssignmentsService {
       throw new Error('Assignment not found');
     }
 
-    if (assignment.status !== AssignmentStatus.STARTED) {
-      throw new Error('Assignment can only be completed if it has been started');
+    if (assignment.driverId !== driverId) {
+      throw new Error('Assignment does not belong to this driver');
     }
 
+    if (assignment.status !== AssignmentStatus.STARTED) {
+      throw new Error(`Cannot complete assignment with status: ${assignment.status}`);
+    }
+
+    // Calculate actual deliveries from completed deliveries
+    const completedDeliveries = assignment.deliveries.filter(d => d.status === 'DELIVERED').length;
+
     const updatedAssignment = await this.prisma.restaurantAssignment.update({
-      where: {
-        id: assignmentId,
-      },
-      data: {
+      where: { id: assignmentId },
+      data: { 
         status: AssignmentStatus.COMPLETED,
-        actualDeliveries: data.actualDeliveries,
-        notes: data.notes || assignment.notes,
+        actualDeliveries: completedDeliveries,
+        updatedAt: new Date(),
       },
       include: {
         driver: {
@@ -281,55 +317,16 @@ export class AssignmentsService {
   }
 
   // Update an assignment (for admin/external use)
-  async updateAssignment(
-    assignmentId: string,
-    updateData: UpdateAssignmentDto
-  ): Promise<AssignmentResponse> {
-    const existingAssignment = await this.prisma.restaurantAssignment.findUnique({
-      where: { id: assignmentId },
-    });
-
-    if (!existingAssignment) {
-      throw new Error('Assignment not found');
-    }
-
-    const dataToUpdate: any = {};
-
-    if (updateData.assignmentDate) {
-      dataToUpdate.assignmentDate = new Date(updateData.assignmentDate);
-    }
-
-    if (updateData.pickupTime) {
-      dataToUpdate.pickupTime = new Date(`1970-01-01T${updateData.pickupTime}:00.000Z`);
-    }
-
-    if (updateData.estimatedDeliveries !== undefined) {
-      dataToUpdate.estimatedDeliveries = updateData.estimatedDeliveries;
-    }
-
-    if (updateData.actualDeliveries !== undefined) {
-      dataToUpdate.actualDeliveries = updateData.actualDeliveries;
-    }
-
-    if (updateData.paymentType) {
-      dataToUpdate.paymentType = updateData.paymentType;
-    }
-
-    if (updateData.paymentRate !== undefined) {
-      dataToUpdate.paymentRate = updateData.paymentRate;
-    }
-
-    if (updateData.algorithmScore !== undefined) {
-      dataToUpdate.algorithmScore = updateData.algorithmScore;
-    }
-
-    if (updateData.notes !== undefined) {
-      dataToUpdate.notes = updateData.notes;
-    }
-
+  async updateAssignment(assignmentId: string, updateData: UpdateAssignmentDto): Promise<AssignmentResponse> {
     const updatedAssignment = await this.prisma.restaurantAssignment.update({
       where: { id: assignmentId },
-      data: dataToUpdate,
+      data: {
+        ...(updateData.estimatedDeliveries && { estimatedDeliveries: updateData.estimatedDeliveries }),
+        ...(updateData.paymentRate && { paymentRate: updateData.paymentRate }),
+        ...(updateData.paymentType && { paymentType: updateData.paymentType }),
+        ...(updateData.notes && { notes: updateData.notes }),
+        updatedAt: new Date(),
+      },
       include: {
         driver: {
           select: {
@@ -355,7 +352,7 @@ export class AssignmentsService {
     }
 
     if (assignment.status === AssignmentStatus.STARTED) {
-      throw new Error('Cannot delete an assignment that has been started');
+      throw new Error('Cannot delete a started assignment');
     }
 
     await this.prisma.restaurantAssignment.delete({
@@ -364,27 +361,21 @@ export class AssignmentsService {
   }
 
   // Get assignment summary for a driver
-  async getAssignmentSummary(driverId: number): Promise<AssignmentSummaryResponse> {
+  async getAssignmentSummary(driverId: number): Promise<AssignmentSummary> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [
-      totalAssignments,
-      pendingAssignments,
-      completedAssignments,
-      todayAssignments,
-      upcomingAssignments,
-    ] = await Promise.all([
+    const [totalAssignments, pendingAssignments, todayAssignments, completedThisWeek] = await Promise.all([
       this.prisma.restaurantAssignment.count({
         where: { driverId },
       }),
       this.prisma.restaurantAssignment.count({
-        where: { driverId, status: AssignmentStatus.PENDING },
-      }),
-      this.prisma.restaurantAssignment.count({
-        where: { driverId, status: AssignmentStatus.COMPLETED },
+        where: {
+          driverId,
+          status: AssignmentStatus.PENDING,
+        },
       }),
       this.prisma.restaurantAssignment.count({
         where: {
@@ -398,8 +389,9 @@ export class AssignmentsService {
       this.prisma.restaurantAssignment.count({
         where: {
           driverId,
-          assignmentDate: {
-            gte: tomorrow,
+          status: AssignmentStatus.COMPLETED,
+          updatedAt: {
+            gte: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
           },
         },
       }),
@@ -408,64 +400,65 @@ export class AssignmentsService {
     return {
       totalAssignments,
       pendingAssignments,
-      completedAssignments,
       todayAssignments,
-      upcomingAssignments,
+      completedThisWeek,
     };
   }
 
-  // Validate assignment data
-  private async validateAssignment(data: CreateAssignmentDto): Promise<AssignmentValidation> {
-    const errors: string[] = [];
-
-    // Check if driver exists and is active
-    const driver = await this.prisma.user.findFirst({
+  /**
+   * Set up route and deliveries for an assignment
+   */
+  private async setupRouteAndDeliveries(assignmentId: string, restaurantId: string): Promise<void> {
+    // Check if route already exists
+    const existingRoute = await this.prisma.deliveryRoute.findFirst({
       where: {
-        id: data.driverId,
-        driverStatus: 'ACTIVE',
+        assignmentId,
+        isActive: true,
       },
     });
 
-    if (!driver) {
-      errors.push('Driver not found or not active');
+    if (existingRoute) {
+      console.log(`Route already exists for assignment ${assignmentId}`);
+      return;
     }
 
-    // Check if driver is already assigned to the same restaurant on the same date
-    const existingAssignment = await this.prisma.restaurantAssignment.findFirst({
-      where: {
-        driverId: data.driverId,
-        restaurantId: data.restaurantId,
-        assignmentDate: new Date(data.assignmentDate),
-      },
-    });
-
-    if (existingAssignment) {
-      errors.push('Driver is already assigned to this restaurant on this date');
-    }
-
-    // Validate date (should not be in the past)
-    const assignmentDate = new Date(data.assignmentDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (assignmentDate < today) {
-      errors.push('Assignment date cannot be in the past');
-    }
-
-    // Validate estimated deliveries
-    if (data.estimatedDeliveries <= 0) {
-      errors.push('Estimated deliveries must be greater than 0');
-    }
-
-    // Validate payment rate
-    if (data.paymentRate <= 0) {
-      errors.push('Payment rate must be greater than 0');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
+    // For now, using placeholder restaurant location
+    // In a real implementation, you would fetch this from a restaurant service
+    const restaurantLocation = {
+      name: `Restaurant ${restaurantId}`,
+      address: 'Restaurant Address', // TODO: Get from restaurant service
+      latitude: 37.7749, // TODO: Get actual coordinates
+      longitude: -122.4194,
     };
+
+    try {
+      const routeResult = await this.routingService.calculateRoute({
+        assignmentId,
+        restaurantLocation,
+        objectives: 'min-schedule-completion-time',
+      });
+
+      if (routeResult.success) {
+        console.log(`Route calculated successfully for assignment ${assignmentId}`);
+        console.log(`- Total distance: ${routeResult.totalDistanceKm} km`);
+        console.log(`- Estimated duration: ${routeResult.estimatedDurationMinutes} minutes`);
+        console.log(`- Deliveries created: ${routeResult.deliveryIds?.length || 0}`);
+      } else {
+        console.warn(`Route calculation failed for assignment ${assignmentId}: ${routeResult.error}`);
+      }
+    } catch (error) {
+      console.error(`Error setting up route for assignment ${assignmentId}:`, error);
+      throw error;
+    }
+  }
+
+  // Validate assignment data
+  private async validateAssignment(assignmentData: CreateAssignmentDto): Promise<ValidationResult> {
+    return this.assignmentUtils.isDriverAvailable(
+      assignmentData.driverId,
+      assignmentData.assignmentDate,
+      assignmentData.restaurantId
+    );
   }
 
   // Format assignment response
@@ -473,9 +466,10 @@ export class AssignmentsService {
     return {
       id: assignment.id,
       driverId: assignment.driverId,
+      driver: assignment.driver,
       restaurantId: assignment.restaurantId,
-      assignmentDate: assignment.assignmentDate,
-      pickupTime: assignment.pickupTime.toISOString().substring(11, 16), // Extract HH:MM
+      assignmentDate: assignment.assignmentDate.toISOString().split('T')[0],
+      pickupTime: assignment.pickupTime.toTimeString().slice(0, 5),
       estimatedDeliveries: assignment.estimatedDeliveries,
       actualDeliveries: assignment.actualDeliveries,
       status: assignment.status,
@@ -485,7 +479,6 @@ export class AssignmentsService {
       notes: assignment.notes,
       createdAt: assignment.createdAt,
       updatedAt: assignment.updatedAt,
-      driver: assignment.driver,
     };
   }
 } 
