@@ -1,14 +1,17 @@
 import express from 'express';
+import { createServer } from 'http';
 import { PrismaClient } from '@prisma/client';
 import { createUserRouter } from './apps/user/user.routes';
 import { createAuthRouter } from './apps/auth/auth.routes';
 import { createDriversRouter } from './apps/drivers/drivers.routes';
 import { createAssignmentsRouter } from './apps/assignments/assignments.routes';
 import { createDeliveriesRouter } from './apps/deliveries/deliveries.routes';
+import { createSocketRouter } from './apps/socket/socket.routes';
 import { monitoringRouter } from './routes/monitoring';
 import { redis } from './config/redis';
 import { logger } from './config/logger';
 import { validateMapboxConfig } from './config/mapbox';
+import { initializeSocket } from './config/socket';
 
 // Initialize Prisma Client with error handling
 export const prisma = new PrismaClient({
@@ -16,6 +19,7 @@ export const prisma = new PrismaClient({
 });
 
 const app = express();
+const server = createServer(app);
 
 app.use(express.json());
 
@@ -40,12 +44,17 @@ async function initializeApp() {
     ]);
     logger.info('Successfully connected to the database and Redis');
 
+    // Initialize Socket.IO
+    initializeSocket(server);
+    logger.info('Socket.IO initialized successfully');
+
     // Create routers with the initialized prisma instance
     const authRouter = createAuthRouter(prisma);
     const userRouter = createUserRouter(prisma);
     const driversRouter = createDriversRouter(prisma);
     const assignmentsRouter = createAssignmentsRouter(prisma);
     const deliveriesRouter = createDeliveriesRouter(prisma);
+    const socketRouter = createSocketRouter(prisma);
 
     // Routes - only set up after connections are established
     app.use('/api/auth', authRouter);
@@ -53,6 +62,7 @@ async function initializeApp() {
     app.use('/api/drivers', driversRouter);
     app.use('/api/assignments', assignmentsRouter);
     app.use('/api/deliveries', deliveriesRouter);
+    app.use('/api/socket', socketRouter);
     app.use('/api/monitoring', monitoringRouter);
 
     // Error handling middleware
@@ -84,4 +94,5 @@ process.on('beforeExit', async () => {
   logger.info('Cleanup completed');
 });
 
+export { server };
 export default app; 
