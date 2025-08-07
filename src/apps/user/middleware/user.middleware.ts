@@ -11,7 +11,7 @@ export class UserMiddleware {
   // Verify if user is accessing their own resources
   authorizeUser = (req: Request, res: Response, next: NextFunction): void => {
     const userId = Number(req.params.userId);
-    
+
     if (!req.user || req.user.id !== userId) {
       res.status(403).json({ error: 'Unauthorized access' });
       return;

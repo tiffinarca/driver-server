@@ -76,6 +76,7 @@ model User {
   schedules            DriverSchedule[]
   availabilityBlocks   DriverAvailabilityBlock[]
   restaurantAssignments RestaurantAssignment[]
+  earnings             DriverEarning[]
   
   // Profile image fields
   profileImageUrl      String?        // Cloudinary secure URL
@@ -156,6 +157,7 @@ model RestaurantAssignment {
   // Route optimization and delivery relations
   deliveries     Delivery[]
   deliveryRoutes DeliveryRoute[]
+  earnings       DriverEarning[]
 
   @@unique([driverId, restaurantId, assignmentDate])
   @@index([assignmentDate])
@@ -196,9 +198,34 @@ model Delivery {
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
   assignment RestaurantAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  earnings   DriverEarning[]
 
   @@index([assignmentId])
   @@index([status])
   @@index([clientId])
   @@map("deliveries")
+}
+
+model DriverEarning {
+  id                 String      @id @default(uuid())
+  driverId           Int         @map("driver_id")
+  assignmentId       String      @map("assignment_id")
+  deliveryId         String?     @map("delivery_id")
+  earningDate        DateTime    @db.Date @map("earning_date")
+  amount             Decimal     @db.Decimal(10, 2)
+  currency           String      @default("USD")
+  calculationMethod  PaymentType @map("calculation_method")
+  calculationDetails Json?       @map("calculation_details")
+  isProcessed        Boolean     @default(false) @map("is_processed")
+  processedAt        DateTime?   @map("processed_at")
+  stripeTransferId   String?     @map("stripe_transfer_id")
+  createdAt          DateTime    @default(now()) @map("created_at")
+
+  driver     User               @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  assignment RestaurantAssignment @relation(fields: [assignmentId], references: [id])
+  delivery   Delivery?          @relation(fields: [deliveryId], references: [id])
+
+  @@index([driverId, isProcessed])
+  @@index([earningDate])
+  @@map("driver_earnings")
 } 

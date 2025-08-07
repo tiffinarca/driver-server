@@ -18,7 +18,7 @@ export class AssignmentsController {
   // GET /api/assignments - List driver's assignments
   getAssignments = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
@@ -32,7 +32,7 @@ export class AssignmentsController {
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
       };
 
-      const result = await this.assignmentsService.getDriverAssignments(req.userId, filters);
+      const result = await this.assignmentsService.getDriverAssignments(req.user.id, filters);
       res.json(result);
     } catch (error) {
       logger.error('Error fetching assignments:', { error: error instanceof Error ? error.message : error });
@@ -43,12 +43,12 @@ export class AssignmentsController {
   // GET /api/assignments/pending - Get pending assignments
   getPendingAssignments = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
-      const assignments = await this.assignmentsService.getPendingAssignments(req.userId);
+      const assignments = await this.assignmentsService.getPendingAssignments(req.user.id);
       res.json({ assignments });
     } catch (error) {
       logger.error('Error fetching pending assignments:', { error: error instanceof Error ? error.message : error });
@@ -59,12 +59,12 @@ export class AssignmentsController {
   // GET /api/assignments/today - Get today's assignments
   getTodayAssignments = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
-      const assignments = await this.assignmentsService.getTodayAssignments(req.userId);
+      const assignments = await this.assignmentsService.getTodayAssignments(req.user.id);
       res.json({ assignments });
     } catch (error) {
       logger.error('Error fetching today assignments:', { error: error instanceof Error ? error.message : error });
@@ -75,12 +75,12 @@ export class AssignmentsController {
   // GET /api/assignments/summary - Get assignment summary
   getAssignmentSummary = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
-      const summary = await this.assignmentsService.getAssignmentSummary(req.userId);
+      const summary = await this.assignmentsService.getAssignmentSummary(req.user.id);
       res.json(summary);
     } catch (error) {
       logger.error('Error fetching assignment summary:', { error: error instanceof Error ? error.message : error });
@@ -91,13 +91,13 @@ export class AssignmentsController {
   // GET /api/assignments/:id - Get assignment details
   getAssignmentById = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
       const assignmentId = req.params.id;
-      const assignment = await this.assignmentsService.getAssignmentById(assignmentId, req.userId);
+      const assignment = await this.assignmentsService.getAssignmentById(assignmentId, req.user.id);
       res.json(assignment);
     } catch (error) {
       logger.error('Error fetching assignment:', { error: error instanceof Error ? error.message : error });
@@ -114,14 +114,14 @@ export class AssignmentsController {
   // PUT /api/assignments/:id/start - Start assignment
   startAssignment = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
       const assignmentId = req.params.id;
 
-      const assignment = await this.assignmentsService.startAssignment(assignmentId, req.userId);
+      const assignment = await this.assignmentsService.startAssignment(assignmentId, req.user.id);
       res.json(assignment);
     } catch (error) {
       logger.error('Error starting assignment:', { error: error instanceof Error ? error.message : error });
@@ -143,14 +143,14 @@ export class AssignmentsController {
   // PUT /api/assignments/:id/complete - Complete assignment
   completeAssignment = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      if (!req.userId) {
+      if (!req.user?.id) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
       const assignmentId = req.params.id;
 
-      const assignment = await this.assignmentsService.completeAssignment(assignmentId, req.userId);
+      const assignment = await this.assignmentsService.completeAssignment(assignmentId, req.user.id);
       res.json(assignment);
     } catch (error) {
       logger.error('Error completing assignment:', { error: error instanceof Error ? error.message : error });
