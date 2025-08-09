@@ -180,7 +180,7 @@ export class UserController {
 
   updateDriverStatus = async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = Number(req.params.userId);
+      const userId = Number(req.params.userId || req.params.id);
       const status = req.body.status as DriverStatus;
       if (!Object.values(DriverStatus).includes(status)) {
         res.status(400).json({ error: 'Invalid driver status' });
