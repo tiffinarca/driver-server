@@ -31,6 +31,19 @@ All routes are prefixed with `/api/drivers` unless otherwise specified.
   - Analytics & Bulk Operations
   - Algorithm Integration Patterns
 
+### 💰 Earnings & Payments
+- [**Earnings**](./earnings.md) - Driver earnings management and payment processing
+  - Earnings Retrieval (daily, weekly, summary views) (endpoints 46-54)
+  - Payment Calculation Methods (fixed, per-delivery, hourly)
+  - Pending Earnings and Payment Processing
+
+### 🔌 Real-time Communication
+- [**Socket Communication**](./socket-communication.md) - WebSocket events and real-time updates
+  - Authentication and Room Management
+  - Assignment, Delivery, and Location Events
+  - System Announcements and Notifications
+  - REST API Integration (endpoints 55-58)
+
 ### 👤 User Operations  
 - [**User Management**](./user-management.md) - User CRUD operations (endpoints 10-15)
 - [**Profile Management**](./profile-management.md) - Profile image management (endpoints 16-19)
@@ -49,7 +62,9 @@ All routes are prefixed with `/api/drivers` unless otherwise specified.
 3. [Configure weekly schedule](./driver-management.md#update-weekly-schedule)
 4. [Add vehicle information](./vehicle-management.md#add-vehicle)
 5. [Upload profile image](./profile-management.md#upload-profile-image)
-6. [View pending assignments](./restaurant-assignments.md#get-pending-assignments)
+6. [Connect via WebSocket](./socket-communication.md#connection-setup) for real-time updates
+7. [View pending assignments](./restaurant-assignments.md#get-pending-assignments)
+8. [Check earnings summary](./earnings.md#get-earnings-summary)
 
 ## API Overview
 
@@ -61,6 +76,8 @@ All routes are prefixed with `/api/drivers` unless otherwise specified.
 | Vehicle Management | 20-24 | Vehicle CRUD operations |
 | Authentication | 25-33 | Login, register, password management |
 | Restaurant Assignments | 34-45 | Assignment management and workflow |
+| Earnings | 46-54 | Driver earnings and payment processing |
+| Socket Communication | 55-58 | Real-time connection monitoring and announcements |
 
 ## Assignment System Overview
 
@@ -76,5 +93,21 @@ PENDING → STARTED → COMPLETED
     ↓
 CANCELLED (optional)
 ```
+
+## Real-time Communication
+
+The system supports real-time communication through WebSocket connections:
+- **Driver Authentication**: Secure socket authentication and room assignment
+- **Live Updates**: Real-time assignment, delivery, and payment notifications
+- **Location Tracking**: Live driver location updates for route optimization
+- **System Announcements**: Broadcast important messages to drivers
+
+## Earnings System
+
+Driver earnings are calculated and tracked automatically:
+- **Multiple Payment Methods**: Fixed, per-delivery, and hourly payment structures
+- **Real-time Calculation**: Automatic earnings calculation upon assignment/delivery completion
+- **Payment Processing**: Integration with Stripe for secure payment transfers
+- **Comprehensive Reporting**: Daily, weekly, and summary earnings views
 
 For detailed endpoint documentation, see the individual section files listed above. 
